@@ -1,0 +1,10 @@
+name: MCC
+version: '${project.version}'
+main: mcc.MCC
+api-version: 1.17
+authors: [ CrazyKZB ]
+description: Computers and runnable code in a minecraft plugin
+commands:
+  computer:
+    aliases: [comp]
+    usage: The computer to interact with all other objects
