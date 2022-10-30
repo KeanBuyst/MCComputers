@@ -8,7 +8,6 @@ public class Controller {
 
     private Controlled controlled;
     private boolean failed = true;
-    private boolean disabled = true;
 
     public Controller(String id){
         Object object = MCC.HANDLER.getObject(id);
@@ -19,23 +18,16 @@ public class Controller {
         }
     }
     public void enable(){
-        if (failed || !disabled) return;
+        if (failed) return;
         controlled.enable();
-        disabled = false;
     }
     public void disable(){
-        if (failed || disabled) return;
-        controlled.disable(false);
-        disabled = true;
+        if (failed) return;
+        controlled.disable();
     }
-    public void disable(boolean force){
-        if (failed || disabled) return;
-        controlled.disable(force);
-        disabled = true;
-    }
-    public void setDirection(String direction){
-        if (failed || disabled) return;
-        switch (direction.charAt(0)){
+    public void setDirection(char direction){
+        if (failed) return;
+        switch (direction){
             case 'N' -> controlled.setDirection(BlockFace.NORTH);
             case 'S' -> controlled.setDirection(BlockFace.SOUTH);
             case 'W' -> controlled.setDirection(BlockFace.WEST);
@@ -45,19 +37,35 @@ public class Controller {
         }
     }
     public void move(){
-        if (failed || disabled) return;
+        if (failed) return;
         controlled.move();
     }
     public void destroy(){
-        if (failed || disabled) return;
+        if (failed) return;
         controlled.destroy();
     }
     public void turnLeft(){
-        if (failed || disabled) return;
+        if (failed) return;
         controlled.turnLeft();
     }
     public void turnRight(){
-        if (failed || disabled) return;
+        if (failed) return;
         controlled.turnRight();
+    }
+    public char getDirection(){
+        if (failed) return ' ';
+        return controlled.getDirection().toString().charAt(0);
+    }
+    public boolean isAir(char direction){
+        if (failed) return false;
+        BlockFace face = BlockFace.SOUTH;
+        switch (direction){
+            case 'N' -> face = BlockFace.NORTH;
+            case 'W' -> face = BlockFace.WEST;
+            case 'E' -> face = BlockFace.EAST;
+            case 'U' -> face = BlockFace.UP;
+            case 'D' -> face = BlockFace.DOWN;
+        }
+        return controlled.isAir(face);
     }
 }

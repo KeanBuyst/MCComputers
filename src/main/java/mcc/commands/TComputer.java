@@ -21,9 +21,9 @@ public class TComputer implements TabCompleter {
             switch (args.length){
                 case 0 -> {return null;}
                 case 1 -> {
+                    list.add("auth");
                     list.add("link");
                     list.add("rename");
-                    list.add("auth");
                 }
                 case 2 -> {
                     if (args[0].equalsIgnoreCase("link")){

@@ -8,8 +8,10 @@ import mcc.events.events;
 import mcc.placement.ObjectHandler;
 import mcc.storage.Storage;
 import mcc.storage.ToLoad;
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitWorker;
 
 import java.io.File;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -47,6 +49,7 @@ public final class MCC extends JavaPlugin {
     }
 
     public void onDisable() {
+        Bukkit.getScheduler().cancelTasks(this);
         for (String id : HANDLER.getIds()){
             Storage.uploadComputer(id);
             Storage.uploadDrone(id);

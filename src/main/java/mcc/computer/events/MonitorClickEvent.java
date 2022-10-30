@@ -72,7 +72,6 @@ public class MonitorClickEvent extends PlayerEvent {
         y -= 127;
         y *= -1;
         y -= player.getLocation().getPitch() / 5;
-        // TODO possibly add yaw
         if (facing == BlockFace.NORTH || facing == BlockFace.WEST){
             x = 127 - x;
         }

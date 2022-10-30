@@ -1,0 +1,20 @@
+# External libraries options
+permit:
+
+  # Allow all external libraries to be imported
+  # WARNING! Do not enable this unless you only have trusted friends in your server!!!
+  all: false
+
+  # Permitted list
+  # The java & python classes allowed to be imported
+  # The ccp.App & ccp.Controller are always permitted
+  list:
+    - java.awt.Color
+    - org.python.modules.time.Time
+
+# Object options
+drone:
+
+  # Allow animations to play when the drone is enabled
+  # Disabling this might help with performance
+  animations: true

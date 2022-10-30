@@ -1,10 +1,12 @@
 package mcc.computer.view;
 
+import mcc.MCC;
 import mcc.PyApp;
 import mcc.computer.events.MonitorClickEvent;
 import mcc.computer.events.TextInput;
 import mcc.computer.view.apps.App;
 import mcc.computer.view.apps.Terminal;
+import org.bukkit.Bukkit;
 import org.bukkit.map.MapCanvas;
 import org.python.core.PyException;
 
@@ -38,44 +40,56 @@ public class ScreenView extends View {
         fill(Color.BLACK);
     }
     public void input(TextInput textInput){
-        try {
-            if (currentApp instanceof PyApp app){
-                if (textInput.text().equals("end")){
-                    app.onClose();
-                    currentApp = new Terminal(this);
-                } else {
-                    app.input(textInput.text());
-                }
+        if (currentApp instanceof PyApp app){
+            if (textInput.text().equals("end")){
+                app.onClose();
+                currentApp = new Terminal(this);
             } else {
-                currentApp.input(textInput);
+                Bukkit.getScheduler().runTaskAsynchronously(MCC.This, new Runnable() {
+                    public void run() {
+                        try {
+                            app.input(textInput.text());
+                        } catch (PyException e){
+                            Terminal terminal = new Terminal(ScreenView.this);
+                            setApp(terminal);
+                            terminal.write(e.getMessage());
+                        }
+                    }
+                });
             }
-        } catch (PyException e){
-            Terminal terminal = new Terminal(this);
-            setApp(terminal);
-            terminal.write(e.getMessage());
+        } else {
+            currentApp.input(textInput);
         }
     }
     public void input(MonitorClickEvent event){
-        try {
-            if (currentApp instanceof PyApp app){
-                app.onClick(event.getX(),event.getY());
-            } else {
-                currentApp.onClick(event);
-            }
-        } catch (PyException e){
-            Terminal terminal = new Terminal(this);
-            setApp(terminal);
-            terminal.write(e.getMessage());
+        if (currentApp instanceof PyApp app){
+            Bukkit.getScheduler().runTaskAsynchronously(MCC.This, new Runnable() {
+                public void run() {
+                    try {
+                        app.onClick(event.getX(),event.getY());
+                    } catch (PyException e){
+                        Terminal terminal = new Terminal(ScreenView.this);
+                        setApp(terminal);
+                        terminal.write(e.getMessage());
+                    }
+                }
+            });
+        } else {
+            currentApp.onClick(event);
         }
     }
     public void onRender(){
-        try {
-            currentApp.onRender();
-        } catch (PyException e){
-            Terminal terminal = new Terminal(this);
-            setApp(terminal);
-            terminal.write(e.getMessage());
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(MCC.This, new Runnable() {
+            public void run() {
+                try {
+                    currentApp.onRender();
+                } catch (PyException e){
+                    Terminal terminal = new Terminal(ScreenView.this);
+                    setApp(terminal);
+                    terminal.write(e.getMessage());
+                }
+            }
+        });
     }
     public void setApp(App app){
         this.currentApp = app;

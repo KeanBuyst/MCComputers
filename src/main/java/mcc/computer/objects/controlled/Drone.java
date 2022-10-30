@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.util.Consumer;
+import org.python.modules.time.Time;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,7 @@ public class Drone implements Object, Authentication, Controlled {
 
     private ArrayList<UUID> authorized = new ArrayList<>();
     private boolean isPlaced = false;
+    private boolean disabled = true;
     public entity entity;
 
     public Drone() {}
@@ -50,6 +52,7 @@ public class Drone implements Object, Authentication, Controlled {
     }
     public void destroy(Player player) {
         isPlaced = false;
+        entity.disable();
         entity.kill();
     }
     public ItemStack getItem() {
@@ -71,67 +74,55 @@ public class Drone implements Object, Authentication, Controlled {
     }
 
     public void enable() {
+        if (!disabled) return;
         entity.enable();
+        disabled = false;
     }
-    public void disable(boolean force) {
-        if (force){
-            entity.disable();
-        } else {
-            entity.queue(new Action(0, new Runnable() {
-                public void run() {
-                    entity.disable();
-                }
-            }));
-        }
+    public void disable() {
+        if (disabled) return;
+        entity.disable();
+        disabled = true;
     }
     public void setDirection(BlockFace face) {
-        entity.queue(new Action(5, new Runnable() {
-            public void run() {
-                entity.setDirection(face);
-            }
-        }));
+        if (disabled) return;
+        entity.setDirection(face);
+        Time.sleep(.5);
     }
     public void turnLeft(){
-        entity.queue(new Action(5, new Runnable() {
-            public void run() {
-                BlockFace direction = entity.getDirection();
-                switch (direction){
-                    case EAST -> direction = BlockFace.NORTH;
-                    case NORTH -> direction = BlockFace.WEST;
-                    case WEST -> direction = BlockFace.SOUTH;
-                    case SOUTH -> direction = BlockFace.EAST;
-                }
-                entity.setDirection(direction);
-            }
-        }));
+        if (disabled) return;
+        BlockFace direction = entity.getDirection();
+        switch (direction){
+            case EAST -> direction = BlockFace.NORTH;
+            case NORTH -> direction = BlockFace.WEST;
+            case WEST -> direction = BlockFace.SOUTH;
+            case SOUTH -> direction = BlockFace.EAST;
+        }
+        entity.setDirection(direction);
     }
     public void turnRight(){
-        entity.queue(new Action(5, new Runnable() {
-            public void run() {
-                BlockFace direction = entity.getDirection();
-                switch (direction){
-                    case EAST -> direction = BlockFace.SOUTH;
-                    case SOUTH -> direction = BlockFace.WEST;
-                    case WEST -> direction = BlockFace.NORTH;
-                    case NORTH -> direction = BlockFace.EAST;
-                }
-                entity.setDirection(direction);
-            }
-        }));
+        if (disabled) return;
+        BlockFace direction = entity.getDirection();
+        switch (direction){
+            case EAST -> direction = BlockFace.SOUTH;
+            case SOUTH -> direction = BlockFace.WEST;
+            case WEST -> direction = BlockFace.NORTH;
+            case NORTH -> direction = BlockFace.EAST;
+        }
+        entity.setDirection(direction);
     }
+    public boolean isAir(BlockFace direction) {
+        return entity.isAir(direction);
+    }
+
     public void move() {
-        entity.queue(new Action(10, new Runnable() {
-            public void run() {
-                entity.move();
-            }
-        }));
+        if (disabled) return;
+        entity.move();
+        Time.sleep(1);
     }
     public void destroy() {
-        entity.queue(new Action(20, new Runnable() {
-            public void run() {
-                entity.destroy();
-            }
-        }));
+        if (disabled) return;
+        entity.destroy();
+        Time.sleep(.5);
     }
     public BlockFace getDirection() {
         return entity.direction;
@@ -160,7 +151,7 @@ public class Drone implements Object, Authentication, Controlled {
     }
 
     private static class entity {
-        private final ConcurrentLinkedQueue<Action> actions = new ConcurrentLinkedQueue<>();
+        private final ConcurrentLinkedQueue<Runnable> synchronised = new ConcurrentLinkedQueue<>();
         private ArmorStand[] blades = new ArmorStand[4];
         private final ArmorStand body;
         private BlockFace direction = BlockFace.SOUTH;
@@ -214,29 +205,18 @@ public class Drone implements Object, Authentication, Controlled {
         }
         public void enable(){
             loopID = Bukkit.getScheduler().scheduleSyncRepeatingTask(MCC.This, new Runnable() {
-                short tick = 0;
-                Action action;
                 public void run() {
                     Chunk chunk = body.getLocation().getChunk();
                     if (!chunk.isLoaded()) chunk.load();
+                    while (!synchronised.isEmpty()){
+                        synchronised.poll().run();
+                    }
                     animate();
-                    if (action == null) {
-                        action = actions.poll();
-                        return;
-                    }
-                    if (action.delay == tick){
-                        action.run();
-                        action = actions.poll();
-                        tick = 0;
-                    } else {
-                        tick++;
-                    }
                 }
             },0,0);
         }
         public void disable(){
             Bukkit.getScheduler().cancelTask(loopID);
-            actions.clear();
         }
         short soundTick = 0;
         public void animate(){
@@ -264,25 +244,35 @@ public class Drone implements Object, Authentication, Controlled {
         }
         public void setDirection(BlockFace face){
             direction = face;
-            Location loc = body.getLocation().setDirection(face.getDirection());
-            body.teleport(loc);
-        }
-        public void queue(Action action){
-            actions.add(action);
+            synchronised.add(new Runnable() {
+                public void run() {
+                    Location loc = body.getLocation().setDirection(face.getDirection());
+                    body.teleport(loc);
+                }
+            });
         }
         public void move(){
-            Location b = body.getLocation().add(direction.getDirection());
-            if (body.getEyeLocation().add(direction.getDirection()).getBlock().getType() != Material.AIR) return;
-            body.teleport(b);
-            for (ArmorStand blade : blades){
-                Location l = blade.getLocation().add(direction.getDirection());
-                blade.teleport(l);
-            }
+            // Synchronise task
+            synchronised.add(new Runnable() {
+                public void run() {
+                    Location b = body.getLocation().add(direction.getDirection());
+                    if (body.getEyeLocation().add(direction.getDirection()).getBlock().getType() != Material.AIR) return;
+                    body.teleport(b);
+                    for (ArmorStand blade : blades){
+                        Location l = blade.getLocation().add(direction.getDirection());
+                        blade.teleport(l);
+                    }
+                }
+            });
         }
         public void destroy(){
-            Block block = body.getEyeLocation().getBlock().getRelative(direction);
-            if (block.getType().isAir()) return;
-            block.breakNaturally(new ItemStack(Material.NETHERITE_PICKAXE));
+            synchronised.add(new Runnable() {
+                public void run() {
+                    Block block = body.getEyeLocation().getBlock().getRelative(direction);
+                    if (block.getType().isAir()) return;
+                    block.breakNaturally(new ItemStack(Material.NETHERITE_PICKAXE));
+                }
+            });
         }
         public void kill(){
             body.remove();
@@ -290,6 +280,9 @@ public class Drone implements Object, Authentication, Controlled {
         }
         public BlockFace getDirection(){
             return direction;
+        }
+        public boolean isAir(BlockFace direction){
+            return body.getEyeLocation().getBlock().getRelative(direction).getType().isAir();
         }
 
         public UUID getID(){
