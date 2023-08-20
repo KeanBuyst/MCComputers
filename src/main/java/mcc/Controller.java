@@ -2,7 +2,11 @@ package mcc;
 
 import mcc.computer.objects.Object;
 import mcc.computer.objects.controlled.Controlled;
+import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Chest;
+
+import java.util.InvalidPropertiesFormatException;
 
 public class Controller {
 
@@ -67,5 +71,22 @@ public class Controller {
             case 'D' -> face = BlockFace.DOWN;
         }
         return controlled.isAir(face);
+    }
+    public boolean hasInventory(){
+        return controlled.hasInventory();
+    }
+    public boolean areSlotsFull(){
+        if (!controlled.hasInventory()) return true;
+        return controlled.areSlotsFull();
+    }
+    public int getAmountOf(String material) throws Exception {
+        if (!controlled.hasInventory()) return 0;
+        Material mat = Material.getMaterial(material);
+        if (mat == null) throw new Exception("Unkown material: " + material);
+        return controlled.getAmountOf(mat);
+    }
+    public String getMaterialAt(int slot){
+        if (!controlled.hasInventory()) return "AIR";
+        return controlled.getMaterialAt(slot).toString();
     }
 }

@@ -1,5 +1,6 @@
 package mcc.computer.objects;
 
+import mcc.events.OnInteract;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -9,6 +10,7 @@ import org.bukkit.metadata.Metadatable;
 public interface Object {
     boolean place(Player player,Location location, BlockFace face);
     void destroy(Player player);
+    void onInteract(OnInteract onInteract);
     ItemStack getItem();
     int getID();
     Location getLocation();

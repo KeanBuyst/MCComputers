@@ -36,6 +36,13 @@ public class Terminal extends App {
             response = text.player().getName() + " disconnected";
             text.player().sendMessage(ChatColor.RED + "Connection closed");
         }
+        if (equals(s1,"ls","dir")){
+            File parent = new File(MCC.This.getDataFolder(),"computers/"+cid);
+            StringBuilder builder = new StringBuilder();
+            for (String file : parent.list((f,name) -> !name.endsWith(".yml")))
+                builder.append(file).append('\n');
+            response = builder.toString();
+        }
         if (equals(s1, "file","f")){
             if (equals(s2,"create")){
                 if (s3 != null){
@@ -65,9 +72,7 @@ public class Terminal extends App {
         write("> " + text.text());
         if (response != null) write(response);
     }
-    public void onClick(MonitorClickEvent event) {
-
-    }
+    public void onClick(MonitorClickEvent event) {}
 
     public void onRender() {}
 

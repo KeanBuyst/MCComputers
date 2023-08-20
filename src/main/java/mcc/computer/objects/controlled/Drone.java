@@ -1,23 +1,29 @@
 package mcc.computer.objects.controlled;
 
+import jnr.ffi.annotations.In;
 import mcc.MCC;
 import mcc.computer.objects.Authentication;
 import mcc.computer.objects.Object;
+import mcc.events.OnInteract;
+import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Hopper;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.util.Consumer;
 import org.python.modules.time.Time;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
 
@@ -36,25 +42,54 @@ public class Drone implements Object, Authentication, Controlled {
     private ArrayList<UUID> authorized = new ArrayList<>();
     private boolean isPlaced = false;
     private boolean disabled = true;
+    private Inventory inventory;
+
     public entity entity;
 
     public Drone() {}
-    public Drone(UUID bodyID,List<UUID> bladesID){
+
+    /**
+     * Initialize existing drone
+     * @param bodyID id of the central armour stand
+     * @param bladesID ids of all 4 blade/propeller armour stands
+     */
+    public Drone(UUID bodyID,List<UUID> bladesID,Inventory inventory){
         isPlaced = true;
         entity = new entity(bodyID,bladesID);
+        this.inventory = inventory;
+    }
+
+    public static Inventory createInventory(){
+        return Bukkit.createInventory(null,InventoryType.DROPPER, Component.text("Drone"));
     }
 
     public boolean place(Player player, Location location, BlockFace face) {
         location.add(0.5,-.4,0.5);
         entity = new entity(location);
         isPlaced = true;
+        inventory = createInventory();
         return true;
     }
     public void destroy(Player player) {
         isPlaced = false;
         entity.disable();
+
+        for (ItemStack stack : inventory.getContents()){
+            if (stack == null) continue;
+            entity.body.getWorld().dropItem(entity.body.getEyeLocation(), stack);
+        }
+
         entity.kill();
     }
+
+    public Inventory getInventory(){
+        return inventory;
+    }
+
+    public void onInteract(OnInteract onInteract) {
+        onInteract.player().openInventory(inventory);
+    }
+
     public ItemStack getItem() {
         return ITEM;
     }
@@ -75,7 +110,7 @@ public class Drone implements Object, Authentication, Controlled {
 
     public void enable() {
         if (!disabled) return;
-        entity.enable();
+        entity.enable(inventory);
         disabled = false;
     }
     public void disable() {
@@ -124,6 +159,29 @@ public class Drone implements Object, Authentication, Controlled {
         entity.destroy();
         Time.sleep(.5);
     }
+
+    public boolean hasInventory() {
+        return true;
+    }
+
+    public boolean areSlotsFull() {
+        return inventory.firstEmpty() == -1;
+    }
+
+    public int getAmountOf(Material material) {
+        int amount = 0;
+        for (ItemStack item : inventory.getContents()){
+            if (item == null) continue;
+            if (item.getType() == material) amount += item.getAmount();
+        }
+        return amount;
+    }
+
+    public Material getMaterialAt(int slot) {
+        ItemStack item = inventory.getItem(slot);
+        return item == null ? Material.AIR : item.getType();
+    }
+
     public BlockFace getDirection() {
         return entity.direction;
     }
@@ -177,7 +235,7 @@ public class Drone implements Object, Authentication, Controlled {
                     armorStand.setCustomNameVisible(false);
                     armorStand.addEquipmentLock(EquipmentSlot.HEAD, ArmorStand.LockType.REMOVING_OR_CHANGING);
                     ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
-                    skull = Bukkit.getUnsafe().modifyItemStack(skull,"{display:{Name:\"Computer Tower\"},SkullOwner:{Id:\"6ce84ae3-53e0-43f1-99df-6f680850a43e\",Properties:{textures:[{Value:\"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2I5MjVkM2E1Mjc1OWZkZThjMDI1ODg3MWZlZmQ5MTQxZTVjOTdmZGY0NTNhZjNkZjIxMTA0Y2M4YzQ4OCJ9fX0=\"}]}}}");
+                    skull = Bukkit.getUnsafe().modifyItemStack(skull, "{display:{Name:\"Computer Tower\"},SkullOwner:{Id:\"6ce84ae3-53e0-43f1-99df-6f680850a43e\",Properties:{textures:[{Value:\"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2I5MjVkM2E1Mjc1OWZkZThjMDI1ODg3MWZlZmQ5MTQxZTVjOTdmZGY0NTNhZjNkZjIxMTA0Y2M4YzQ4OCJ9fX0=\"}]}}}");
                     armorStand.getEquipment().setHelmet(skull,true);
                 }
             });
@@ -203,13 +261,48 @@ public class Drone implements Object, Authentication, Controlled {
                 });
             }
         }
-        public void enable(){
+        public void enable(Inventory inventory){
             loopID = Bukkit.getScheduler().scheduleSyncRepeatingTask(MCC.This, new Runnable() {
                 public void run() {
                     Chunk chunk = body.getLocation().getChunk();
                     if (!chunk.isLoaded()) chunk.load();
+
+                    // pick up items
+                    for (Item item : body.getEyeLocation().getNearbyEntitiesByType(Item.class,1)){
+                        ItemStack itemStack = item.getItemStack();
+                        Map<Integer,ItemStack> map = inventory.addItem(itemStack);
+                        if (map.isEmpty())
+                            item.remove();
+                        else item.setItemStack(map.get(0));
+                    }
+
                     while (!synchronised.isEmpty()){
                         synchronised.poll().run();
+                    }
+
+                    // check if hopper beneath
+                    Block block = body.getLocation().getBlock(); // none eye level block is below drone
+                    if (block.getType() == Material.HOPPER){
+                        Hopper hopper = (Hopper) block.getState();
+                        Inventory hopperInventory = hopper.getInventory();
+
+                        // get last ItemStack
+                        ItemStack lastItem = null;
+                        int index = 0;
+                        for (int i = inventory.getSize() - 1; i >= 0; i--){
+                            ItemStack item = inventory.getItem(i);
+                            if (item == null) continue;
+                            lastItem = item;
+                            index = i;
+                            break;
+                        }
+
+                        if (lastItem != null){
+                            Map<Integer,ItemStack> map = hopperInventory.addItem(lastItem);
+                            if (map.isEmpty())
+                                inventory.clear(index);
+                            else inventory.setItem(index,map.get(0));
+                        }
                     }
                     animate();
                 }

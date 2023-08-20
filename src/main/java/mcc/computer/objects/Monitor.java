@@ -1,6 +1,8 @@
 package mcc.computer.objects;
 
+import mcc.computer.events.MonitorClickEvent;
 import mcc.computer.view.ScreenView;
+import mcc.events.OnInteract;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -105,6 +107,11 @@ public class Monitor implements Object {
         frame.remove();
         view = null;
     }
+
+    public void onInteract(OnInteract onInteract) {
+        Bukkit.getServer().getPluginManager().callEvent(new MonitorClickEvent(onInteract.player(), onInteract.location().toVector(), this, onInteract.entity().getFacing()));
+    }
+
     public ItemStack getItem() {
         return ITEM;
     }

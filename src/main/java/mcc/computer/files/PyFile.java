@@ -47,8 +47,7 @@ public class PyFile extends File {
         Bukkit.getScheduler().runTaskAsynchronously(MCC.This, new Runnable() {
             public void run() {
                 Computer computer = (Computer) MCC.HANDLER.getObject(id);
-                try {
-                    PythonInterpreter interpreter = new PythonInterpreter();
+                try (PythonInterpreter interpreter = new PythonInterpreter()) {
                     interpreter.getSystemState().setClassLoader(LOADER);
                     Stdout out = new Stdout(computer.getView().getApp(),executor);
                     interpreter.getSystemState().stdout = out;

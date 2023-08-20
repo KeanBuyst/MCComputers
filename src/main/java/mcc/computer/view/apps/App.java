@@ -21,7 +21,6 @@ public abstract class App {
         view.fill(Color.BLACK);
     }
 
-    // Single character is about <6>
     protected List<String> splice(String text){
         List<String> list = new ArrayList<>();
         text.lines().forEach(new Consumer<String>() {

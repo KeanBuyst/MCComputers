@@ -34,6 +34,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.persistence.PersistentDataContainer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +48,37 @@ public class events implements Listener {
         ItemStack item = event.getItem();
         BlockFace face = event.getBlockFace();
         Action action = event.getAction();
-        if (action == Action.RIGHT_CLICK_BLOCK){
+        Block block = event.getClickedBlock();
+        if (block != null) {
+            if (item != null && item.hasItemMeta()) {
+                ItemMeta meta = item.getItemMeta();
+                if (meta.hasLore()){
+                    String id = meta.getLore().get(0);
+                    Object object = MCC.HANDLER.getObject(id);
+                    if (object != null){
+                        Block pos = block.getRelative(face);
+                        if(object.place(event.getPlayer(), pos.getLocation(),face)){
+                            item.setAmount(item.getAmount()-1);
+                            object.getResult().setMetadata("ID",new FixedMetadataValue(MCC.This,id));
+                        }
+                    }
+                }
+            }
+
+            if (block.hasMetadata("ID")) {
+                Object object = MCC.HANDLER.getObject(block.getMetadata("ID").get(0).asString());
+                if (object != null) {
+                    object.onInteract(new OnInteract(event.getPlayer(), event.getInteractionPoint(),action,null,block,face));
+                } else {
+                    block.removeMetadata("ID",MCC.This);
+                }
+            }
+        } else if (item != null) {
+
+        }
+
+        // send onInteract
+        /*if (action == Action.RIGHT_CLICK_BLOCK){
             if (item != null && item.hasItemMeta()){
                 ItemMeta meta = item.getItemMeta();
                 if (meta.hasLore()){
@@ -65,15 +96,14 @@ public class events implements Listener {
                         item.setItemMeta(meta);
                     }
                 }
-            }
-            Block block = event.getClickedBlock();
-            if (block.hasMetadata("ID")){
+            }*/
+
+            /*if (block.hasMetadata("ID")){
                 Object object = MCC.HANDLER.getObject(block.getMetadata("ID").get(0).asString());
                 if (object instanceof Computer computer){
                     caller(new MonitorClickEvent(event.getPlayer(), event.getInteractionPoint(),computer.getMonitor(),face));
                 }
-            }
-        }
+            }*/
     }
 
     @EventHandler
@@ -83,8 +113,11 @@ public class events implements Listener {
         if (entity.hasMetadata("ID")){
             String id = entity.getMetadata("ID").get(0).asString();
             Object object = MCC.HANDLER.getObject(id);
-            if (object != null && object.getID() == 12001){
-                caller(new MonitorClickEvent(event.getPlayer(), event.getClickedPosition(), (Monitor) object,entity.getFacing()));
+            // TODO call onInteract
+            if (object != null) {
+                object.onInteract(new OnInteract(event.getPlayer(),event.getClickedPosition().toLocation(entity.getWorld()),null,entity,null,null));
+            } else {
+                entity.removeMetadata("ID",MCC.This);
             }
         }
     }
@@ -95,7 +128,10 @@ public class events implements Listener {
         if (!entity.hasMetadata("ID")) return;
         String id = entity.getMetadata("ID").get(0).asString();
         Object object = MCC.HANDLER.getObject(id);
-        if (object == null) return;
+        if (object == null) {
+            entity.removeMetadata("ID",MCC.This);
+            return;
+        }
         object.destroy((Player) event.getDamager());
         ItemStack item = object.getItem().clone();
         ItemMeta meta = item.getItemMeta();
@@ -234,8 +270,5 @@ public class events implements Listener {
                 MCC.This.toLoads.remove(toLoad);
             }
         }
-    }
-    private void caller(Event event){
-        Bukkit.getServer().getPluginManager().callEvent(event);
     }
 }

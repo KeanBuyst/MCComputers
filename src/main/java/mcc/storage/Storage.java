@@ -7,19 +7,20 @@ import mcc.computer.objects.controlled.Drone;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.GlowItemFrame;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 
 public class Storage {
@@ -122,6 +123,15 @@ public class Storage {
                             return armorStand.getUniqueId().toString();
                         }
                     }).toList());
+                    // upload inventory
+                    Inventory inventory = drone.getInventory();
+                    for (int i = 0; i < inventory.getSize(); i++){
+                        ItemStack stack = inventory.getItem(i);
+                        if (stack == null) continue;
+                        String category = "Inventory.SLOT" + i;
+                        yml.set(category + ".Type",stack.getType().toString());
+                        yml.set(category + ".Amount",stack.getAmount());
+                    }
                 } else {
                     yml.set("Placed",false);
                 }
@@ -147,7 +157,21 @@ public class Storage {
                         UUID body = UUID.fromString(yml.getString("Body"));
                         List<UUID> blades = yml.getStringList("Blades").stream().map(UUID::fromString).toList();
                         ArrayList<UUID> authorized = new ArrayList<>(yml.getStringList("Users.authorized").stream().map(UUID::fromString).toList());
-                        Drone drone = new Drone(body,blades);
+                        // load inventory
+                        Inventory inventory = Drone.createInventory();
+                        ConfigurationSection section = yml.getConfigurationSection("Inventory");
+
+                        if (section != null){
+                            for (String slot : section.getKeys(false)){
+                                ConfigurationSection data = section.getConfigurationSection(slot);
+                                int index = Integer.parseInt(slot.substring(4));
+                                ItemStack stack = new ItemStack(Material.getMaterial(data.getString("Type")));
+                                stack.setAmount(data.getInt("Amount"));
+                                inventory.setItem(index,stack);
+                            }
+                        }
+
+                        Drone drone = new Drone(body,blades,inventory);
                         drone.setAuthorized(authorized);
                         drone.getBody().setMetadata("ID",new FixedMetadataValue(MCC.This,id));
                         MCC.HANDLER.addObject(id,drone);
@@ -165,11 +189,23 @@ public class Storage {
         }
     }
     public static void setID(String from,String to){
-        String[] parents = new String[]{"computers","drones"};
-        for (String parent : parents){
-            File file = new File(MCC.This.getDataFolder(), parent+"/"+from);
-            if (!file.exists()) continue;
-            file.renameTo(new File(MCC.This.getDataFolder(), parent+"/"+to));
+        File file = search(MCC.This.getDataFolder(), from);
+        if (file == null) return;
+        if (file.isDirectory())
+            file.renameTo(new File(file.getParent(),to));
+        else
+            file.renameTo(new File(file.getParent(),to + ".yml"));
+    }
+    private static File search(File parent,String id){
+        for (File file : parent.listFiles()){
+            String name = file.getName();
+            if (name.equals(id)) return file;
+            if (name.equals(id + ".yml")) return file;
+            if (file.isDirectory()){
+                File f = search(file,id);
+                if (f != null) return f;
+            }
         }
+        return null;
     }
 }

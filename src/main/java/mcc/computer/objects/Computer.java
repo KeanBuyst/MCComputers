@@ -2,6 +2,7 @@ package mcc.computer.objects;
 
 import mcc.MCC;
 import mcc.computer.view.ScreenView;
+import mcc.events.OnInteract;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -40,7 +41,7 @@ public class Computer implements Object, Authentication {
         ITEM.setItemMeta(meta);
     }
     public boolean place(Player player, Location location, BlockFace face){
-        if (face == BlockFace.DOWN || face == BlockFace.UP) return false;
+        face = getCorrectFace(player,face);
         block = location.getBlock();
         if (!block.getType().isAir()) return false;
         block.setType(Material.IRON_BLOCK);
@@ -55,10 +56,21 @@ public class Computer implements Object, Authentication {
         return false;
     }
 
+    private BlockFace getCorrectFace(Player player, BlockFace face){
+        if (face != BlockFace.DOWN && face != BlockFace.UP) return face;
+        face = player.getFacing().getOppositeFace();
+        if (face != BlockFace.DOWN && face != BlockFace.UP) return face;
+        return BlockFace.NORTH;
+    }
+
     public void destroy(Player player) {
         isPlaced = false;
         monitor.destroy(player);
         block.setType(Material.AIR);
+    }
+
+    public void onInteract(OnInteract onInteract) {
+
     }
 
     public ItemStack getItem() {

@@ -33,8 +33,10 @@ public class CComputer implements CommandExecutor {
                     Object object = MCC.HANDLER.getObject(id);
                     if (object instanceof Authentication authentication){
                         if (object.isPlaced() && authentication.authorized(player.getUniqueId()) && args[0].equalsIgnoreCase("rename")){
-                            MCC.HANDLER.rename(id,arg);
-                            player.sendMessage(ChatColor.GOLD+"Successfully renamed "+id+" to "+arg);
+                            if (MCC.HANDLER.rename(id,arg))
+                                player.sendMessage(ChatColor.GOLD+"Successfully renamed "+id+" to "+arg);
+                            else
+                                player.sendMessage(ChatColor.RED+"Failed to renamed "+id+" to "+arg);
                         }
                         if (args[0].equalsIgnoreCase("auth")){
                             Player p = Bukkit.getPlayer(arg);

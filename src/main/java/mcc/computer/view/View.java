@@ -21,13 +21,13 @@ public class View {
         if (isDrawable(x,y)){
             x += offsetX;
             y += offsetY;
-            canvas.setPixel(x,y, MapPalette.matchColor(color));
+            canvas.setPixelColor(x,y, color);
         }
     }
     public Color getPixel(int x,int y){
         x += offsetX;
         y += offsetY;
-        return MapPalette.getColor(canvas.getPixel(x,y));
+        return canvas.getPixelColor(x,y);
     }
     public void drawRect(Color color,int x, int y, int width, int height){
         for (int Y = y; Y <= y+height; Y++){
