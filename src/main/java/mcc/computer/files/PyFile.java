@@ -15,6 +15,8 @@ import org.python.util.PythonInterpreter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,42 +35,40 @@ public class PyFile extends File {
 
     public void clonePastebin(String key){
         try {
-            URL url = new URL("https://pastebin.com/raw/"+key);
+            URL url = new URI("https://pastebin.com/raw/"+key).toURL();
             String text = new String(url.openStream().readAllBytes());
             FileWriter writer = new FileWriter(this);
             writer.write(text);
             writer.close();
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
         }
     }
 
     public void execute(){
-        Bukkit.getScheduler().runTaskAsynchronously(MCC.This, new Runnable() {
-            public void run() {
-                Computer computer = (Computer) MCC.HANDLER.getObject(id);
-                try (PythonInterpreter interpreter = new PythonInterpreter()) {
-                    interpreter.getSystemState().setClassLoader(LOADER);
-                    Stdout out = new Stdout(computer.getView().getApp(),executor);
-                    interpreter.getSystemState().stdout = out;
-                    interpreter.set("computer", MCC.HANDLER.getObject(id));
-                    interpreter.execfile(PyFile.this.getPath());
-                    PyObject clazz = interpreter.get("App");
-                    if (clazz != null){
-                        // App mode
-                        PyApp app = (PyApp) clazz.__call__(Py.java2py(computer.getView())).__tojava__(PyApp.class);
-                        computer.getView().setApp(app);
-                        out.setApp(app);
-                    }
-                } catch (Exception e){
-                    ScreenView view = computer.getView();
-                    if (view.getApp() instanceof Terminal terminal){
-                        terminal.write(e.getMessage());
-                    } else {
-                        Terminal terminal = new Terminal(view);
-                        view.setApp(terminal);
-                        terminal.write(e.getMessage());
-                    }
+        Bukkit.getScheduler().runTaskAsynchronously(MCC.This, () -> {
+            Computer computer = (Computer) MCC.HANDLER.getObject(id);
+            try (PythonInterpreter interpreter = new PythonInterpreter()) {
+                interpreter.getSystemState().setClassLoader(LOADER);
+                Stdout out = new Stdout(computer.getView().getApp(),executor);
+                interpreter.getSystemState().stdout = out;
+                interpreter.set("computer", MCC.HANDLER.getObject(id));
+                interpreter.execfile(PyFile.this.getPath());
+                PyObject clazz = interpreter.get("App");
+                if (clazz != null){
+                    // App mode
+                    PyApp app = (PyApp) clazz.__call__(Py.java2py(computer.getView())).__tojava__(PyApp.class);
+                    computer.getView().setApp(app);
+                    out.setApp(app);
+                }
+            } catch (Exception e){
+                ScreenView view = computer.getView();
+                if (view.getApp() instanceof Terminal terminal){
+                    terminal.write(e.getMessage());
+                } else {
+                    Terminal terminal = new Terminal(view);
+                    view.setApp(terminal);
+                    terminal.write(e.getMessage());
                 }
             }
         });

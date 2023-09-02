@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
 
 public class MonitorClickEvent extends PlayerEvent {
 
@@ -67,11 +68,9 @@ public class MonitorClickEvent extends PlayerEvent {
             x = (int) location.getX();
             x = (int) ((location.getX() - x) * 127);
         }
-        //x *= 0.12712712712712712;
-        //y *= 0.12712712712712712;
         y -= 127;
         y *= -1;
-        y -= player.getLocation().getPitch() / 5;
+        y -= (int) (player.getLocation().getPitch() / 5);
         if (facing == BlockFace.NORTH || facing == BlockFace.WEST){
             x = 127 - x;
         }
@@ -99,7 +98,7 @@ public class MonitorClickEvent extends PlayerEvent {
         return y;
     }
 
-    public HandlerList getHandlers() {
+    public @NotNull HandlerList getHandlers() {
         return handlers;
     }
 }

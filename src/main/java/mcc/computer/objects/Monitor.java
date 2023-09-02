@@ -3,6 +3,7 @@ package mcc.computer.objects;
 import mcc.computer.events.MonitorClickEvent;
 import mcc.computer.view.ScreenView;
 import mcc.events.OnInteract;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,6 +18,7 @@ import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.util.Consumer;
+import org.jetbrains.annotations.NotNull;
 
 public class Monitor implements Object {
 
@@ -29,13 +31,12 @@ public class Monitor implements Object {
     static {
         ITEM = new ItemStack(Material.FILLED_MAP);
         ItemMeta meta = ITEM.getItemMeta();
-        meta.setDisplayName("Monitor");
+        meta.displayName(Component.text("Monitor"));
         meta.setCustomModelData(ID);
         ITEM.setItemMeta(meta);
     }
 
     public Monitor(){}
-    @SuppressWarnings("deprecation")
     public Monitor(GlowItemFrame frame, Byte[] byteMap){
         this.frame = frame;
         MapMeta meta = (MapMeta) frame.getItem().getItemMeta();
@@ -43,7 +44,7 @@ public class Monitor implements Object {
         for (MapRenderer renderer : v.getRenderers()) v.removeRenderer(renderer);
         v.addRenderer(new MapRenderer() {
             private boolean first = true;
-            public void render(MapView map, MapCanvas canvas, Player player) {
+            public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player player) {
                 if (first){
                     first = false;
                     Monitor.this.view = new ScreenView(canvas);
@@ -54,7 +55,6 @@ public class Monitor implements Object {
         meta.setMapView(v);
         frame.getItem().setItemMeta(meta);
     }
-    @SuppressWarnings("deprecation")
     public Monitor(GlowItemFrame frame){
         isPlaced = true;
         this.frame = frame;
@@ -63,7 +63,7 @@ public class Monitor implements Object {
         for (MapRenderer renderer : v.getRenderers()) v.removeRenderer(renderer);
         v.addRenderer(new MapRenderer() {
             private boolean first = true;
-            public void render(MapView map, MapCanvas canvas, Player player) {
+            public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player player) {
                 if (first){
                     first = false;
                     Monitor.this.view = new ScreenView(canvas);
@@ -75,17 +75,15 @@ public class Monitor implements Object {
     }
     public boolean place(Player player,Location location, BlockFace face) {
         if (!location.getBlock().getType().isAir()) return false;
-        frame = location.getWorld().spawn(location, GlowItemFrame.class, new Consumer<GlowItemFrame>() {
-            public void accept(GlowItemFrame glowItemFrame) {
-                glowItemFrame.setFacingDirection(face,true);
-                glowItemFrame.setFixed(true);
-                glowItemFrame.setInvulnerable(true);
-            }
+        frame = location.getWorld().spawn(location, GlowItemFrame.class, glowItemFrame -> {
+            glowItemFrame.setFacingDirection(face,true);
+            glowItemFrame.setFixed(true);
+            glowItemFrame.setInvulnerable(true);
         });
         MapView view = Bukkit.createMap(location.getWorld());
         view.addRenderer(new MapRenderer() {
             private boolean first = true;
-            public void render(MapView map, MapCanvas canvas, Player player) {
+            public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player player) {
                 if (first){
                     first = false;
                     Monitor.this.view = new ScreenView(canvas);
@@ -109,7 +107,12 @@ public class Monitor implements Object {
     }
 
     public void onInteract(OnInteract onInteract) {
-        Bukkit.getServer().getPluginManager().callEvent(new MonitorClickEvent(onInteract.player(), onInteract.location().toVector(), this, onInteract.entity().getFacing()));
+        MonitorClickEvent event;
+        if (onInteract.block() == null)
+            event = new MonitorClickEvent(onInteract.player(), onInteract.location().toVector(), this, onInteract.entity().getFacing());
+        else
+            event = new MonitorClickEvent(onInteract.player(), onInteract.location(), this, onInteract.entity().getFacing());
+        Bukkit.getServer().getPluginManager().callEvent(event);
     }
 
     public ItemStack getItem() {

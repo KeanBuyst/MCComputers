@@ -45,15 +45,13 @@ public class ScreenView extends View {
                 app.onClose();
                 currentApp = new Terminal(this);
             } else {
-                Bukkit.getScheduler().runTaskAsynchronously(MCC.This, new Runnable() {
-                    public void run() {
-                        try {
-                            app.input(textInput.text());
-                        } catch (PyException e){
-                            Terminal terminal = new Terminal(ScreenView.this);
-                            setApp(terminal);
-                            terminal.write(e.getMessage());
-                        }
+                Bukkit.getScheduler().runTaskAsynchronously(MCC.This, () -> {
+                    try {
+                        app.input(textInput.text());
+                    } catch (PyException e){
+                        Terminal terminal = new Terminal(ScreenView.this);
+                        setApp(terminal);
+                        terminal.write(e.getMessage());
                     }
                 });
             }
@@ -63,15 +61,13 @@ public class ScreenView extends View {
     }
     public void input(MonitorClickEvent event){
         if (currentApp instanceof PyApp app){
-            Bukkit.getScheduler().runTaskAsynchronously(MCC.This, new Runnable() {
-                public void run() {
-                    try {
-                        app.onClick(event.getX(),event.getY());
-                    } catch (PyException e){
-                        Terminal terminal = new Terminal(ScreenView.this);
-                        setApp(terminal);
-                        terminal.write(e.getMessage());
-                    }
+            Bukkit.getScheduler().runTaskAsynchronously(MCC.This, () -> {
+                try {
+                    app.onClick(event.getX(),event.getY());
+                } catch (PyException e){
+                    Terminal terminal = new Terminal(ScreenView.this);
+                    setApp(terminal);
+                    terminal.write(e.getMessage());
                 }
             });
         } else {
@@ -79,15 +75,13 @@ public class ScreenView extends View {
         }
     }
     public void onRender(){
-        Bukkit.getScheduler().runTaskAsynchronously(MCC.This, new Runnable() {
-            public void run() {
-                try {
-                    currentApp.onRender();
-                } catch (PyException e){
-                    Terminal terminal = new Terminal(ScreenView.this);
-                    setApp(terminal);
-                    terminal.write(e.getMessage());
-                }
+        Bukkit.getScheduler().runTaskAsynchronously(MCC.This, () -> {
+            try {
+                currentApp.onRender();
+            } catch (PyException e){
+                Terminal terminal = new Terminal(ScreenView.this);
+                setApp(terminal);
+                terminal.write(e.getMessage());
             }
         });
     }

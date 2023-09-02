@@ -20,9 +20,13 @@ import org.bukkit.metadata.FixedMetadataValue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class Storage {
     public static void uploadComputer(String id){
         Object object = MCC.HANDLER.getObject(id);
@@ -49,11 +53,7 @@ public class Storage {
                     yml.set("Computer.location", location.getWorld().getName() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ());
                     yml.set("Monitor.id", computer.getMonitor().getFrame().getUniqueId().toString());
                 }
-                yml.set("Users.authorized", computer.getAuthorized().stream().map(new Function<UUID, String>() {
-                    public String apply(UUID uuid) {
-                            return uuid.toString();
-                        }
-                }).toList());
+                yml.set("Users.authorized", computer.getAuthorized().stream().map(UUID::toString).toList());
                 yml.save(dataFile);
             } catch (IOException | InvalidConfigurationException e) {
                 e.printStackTrace();
@@ -69,22 +69,20 @@ public class Storage {
             boolean isPlaced = yml.getBoolean("Placed");
             if (isPlaced){
                 ToLoad toLoad = new ToLoad(yml.getInt("Chunk.x"),yml.getInt("Chunk.z"));
-                toLoad.setOnload(new Runnable() {
-                    public void run() {
-                        String[] args = yml.getString("Computer.location").split(":");
-                        Block block = new Location(Bukkit.getWorld(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]),Integer.parseInt(args[3])).getBlock();
-                        String mid = yml.getString("Monitor.id");
-                        GlowItemFrame frame = (GlowItemFrame) Bukkit.getEntity(UUID.fromString(mid));
-                        Monitor monitor = new Monitor(frame);
-                        ArrayList<UUID> uuids = new ArrayList<>(yml.getStringList("Users.authorized").stream().map(UUID::fromString).toList());
-                        Computer computer = new Computer(block,monitor);
-                        computer.setAuthorized(uuids);
-                        frame.setMetadata("ID",new FixedMetadataValue(MCC.This,mid));
-                        block.setMetadata("ID",new FixedMetadataValue(MCC.This,id));
-                        MCC.HANDLER.addObject(mid,monitor);
-                        MCC.HANDLER.addObject(id,computer);
-                        MCC.This.getLogger().info("Successfully loaded: "+id);
-                    }
+                toLoad.setOnload(() -> {
+                    String[] args = yml.getString("Computer.location").split(":");
+                    Block block = new Location(Bukkit.getWorld(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]),Integer.parseInt(args[3])).getBlock();
+                    String mid = yml.getString("Monitor.id");
+                    GlowItemFrame frame = (GlowItemFrame) Bukkit.getEntity(UUID.fromString(mid));
+                    Monitor monitor = new Monitor(frame);
+                    ArrayList<UUID> uuids = new ArrayList<>(yml.getStringList("Users.authorized").stream().map(UUID::fromString).toList());
+                    Computer computer = new Computer(block,monitor);
+                    computer.setAuthorized(uuids);
+                    frame.setMetadata("ID",new FixedMetadataValue(MCC.This,mid));
+                    block.setMetadata("ID",new FixedMetadataValue(MCC.This,id));
+                    MCC.HANDLER.addObject(mid,monitor);
+                    MCC.HANDLER.addObject(id,computer);
+                    MCC.This.getLogger().info("Successfully loaded: "+id);
                 });
                 MCC.This.toLoads.add(toLoad);
             } else {

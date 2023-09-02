@@ -3,6 +3,7 @@ package mcc.computer.objects;
 import mcc.MCC;
 import mcc.computer.view.ScreenView;
 import mcc.events.OnInteract;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -36,7 +37,7 @@ public class Computer implements Object, Authentication {
     static {
         ITEM = new ItemStack(Material.IRON_BLOCK);
         ItemMeta meta = ITEM.getItemMeta();
-        meta.setDisplayName("Computer");
+        meta.displayName(Component.text("Computer"));
         meta.setCustomModelData(ID);
         ITEM.setItemMeta(meta);
     }

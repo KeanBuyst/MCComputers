@@ -1,14 +1,12 @@
 package mcc.events;
 
 import mcc.MCC;
-import mcc.computer.events.MonitorClickEvent;
 import mcc.computer.events.TextInput;
 import mcc.computer.objects.Computer;
 import mcc.computer.objects.Monitor;
 import mcc.computer.objects.Object;
 import mcc.computer.objects.controlled.Drone;
 import mcc.storage.ToLoad;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.block.Block;
@@ -17,7 +15,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
@@ -28,13 +25,11 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.persistence.PersistentDataContainer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,37 +68,7 @@ public class events implements Listener {
                     block.removeMetadata("ID",MCC.This);
                 }
             }
-        } else if (item != null) {
-
         }
-
-        // send onInteract
-        /*if (action == Action.RIGHT_CLICK_BLOCK){
-            if (item != null && item.hasItemMeta()){
-                ItemMeta meta = item.getItemMeta();
-                if (meta.hasLore()){
-                    String id = meta.getLore().get(0);
-                    if (MCC.HANDLER.contains(id)){
-                        event.setCancelled(true);
-                        Object object = MCC.HANDLER.getObject(id);
-                        Block block = event.getClickedBlock().getRelative(face);
-                        if(object.place(event.getPlayer(), block.getLocation(),face)){
-                            item.setAmount(item.getAmount()-1);
-                            object.getResult().setMetadata("ID",new FixedMetadataValue(MCC.This,id));
-                        }
-                    } else {
-                        meta.setLore(null);
-                        item.setItemMeta(meta);
-                    }
-                }
-            }*/
-
-            /*if (block.hasMetadata("ID")){
-                Object object = MCC.HANDLER.getObject(block.getMetadata("ID").get(0).asString());
-                if (object instanceof Computer computer){
-                    caller(new MonitorClickEvent(event.getPlayer(), event.getInteractionPoint(),computer.getMonitor(),face));
-                }
-            }*/
     }
 
     @EventHandler

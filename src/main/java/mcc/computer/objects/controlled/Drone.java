@@ -1,6 +1,5 @@
 package mcc.computer.objects.controlled;
 
-import jnr.ffi.annotations.In;
 import mcc.MCC;
 import mcc.computer.objects.Authentication;
 import mcc.computer.objects.Object;
@@ -16,16 +15,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.Metadatable;
-import org.bukkit.util.Consumer;
 import org.python.modules.time.Time;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.function.Function;
 
 public class Drone implements Object, Authentication, Controlled {
     public static final ItemStack ITEM;
@@ -34,7 +33,7 @@ public class Drone implements Object, Authentication, Controlled {
     static {
         ITEM = new ItemStack(Material.ENDERMITE_SPAWN_EGG);
         ItemMeta meta = ITEM.getItemMeta();
-        meta.setDisplayName("Drone");
+        meta.displayName(Component.text("Drone"));
         meta.setCustomModelData(ID);
         ITEM.setItemMeta(meta);
     }
@@ -44,7 +43,7 @@ public class Drone implements Object, Authentication, Controlled {
     private boolean disabled = true;
     private Inventory inventory;
 
-    public entity entity;
+    private entity entity;
 
     public Drone() {}
 
@@ -217,27 +216,22 @@ public class Drone implements Object, Authentication, Controlled {
 
         public entity(UUID bodyID,List<UUID> bladesID){
             body = (ArmorStand) Bukkit.getEntity(bodyID);
-            blades = bladesID.stream().map(new Function<UUID, ArmorStand>() {
-                public ArmorStand apply(UUID uuid) {
-                    return (ArmorStand) Bukkit.getEntity(uuid);
-                }
-            }).toArray(ArmorStand[]::new);
+            if (body == null) throw new RuntimeException("Unable to locate body of drone from file");
+            blades = bladesID.stream().map(uuid -> (ArmorStand) Bukkit.getEntity(uuid)).toArray(ArmorStand[]::new);
         }
         @SuppressWarnings("deprecation")
         public entity(Location location){
-            body = location.getWorld().spawn(location, ArmorStand.class, new Consumer<ArmorStand>() {
-                public void accept(ArmorStand armorStand) {
-                    armorStand.setVisible(false);
-                    armorStand.setSmall(true);
-                    armorStand.setBasePlate(false);
-                    armorStand.setGravity(false);
-                    armorStand.setCustomName("Drone");
-                    armorStand.setCustomNameVisible(false);
-                    armorStand.addEquipmentLock(EquipmentSlot.HEAD, ArmorStand.LockType.REMOVING_OR_CHANGING);
-                    ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
-                    skull = Bukkit.getUnsafe().modifyItemStack(skull, "{display:{Name:\"Computer Tower\"},SkullOwner:{Id:\"6ce84ae3-53e0-43f1-99df-6f680850a43e\",Properties:{textures:[{Value:\"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2I5MjVkM2E1Mjc1OWZkZThjMDI1ODg3MWZlZmQ5MTQxZTVjOTdmZGY0NTNhZjNkZjIxMTA0Y2M4YzQ4OCJ9fX0=\"}]}}}");
-                    armorStand.getEquipment().setHelmet(skull,true);
-                }
+            body = location.getWorld().spawn(location, ArmorStand.class, armorStand -> {
+                armorStand.setVisible(false);
+                armorStand.setSmall(true);
+                armorStand.setBasePlate(false);
+                armorStand.setGravity(false);
+                armorStand.setCustomName("Drone");
+                armorStand.setCustomNameVisible(false);
+                armorStand.addEquipmentLock(EquipmentSlot.HEAD, ArmorStand.LockType.REMOVING_OR_CHANGING);
+                ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
+                skull = Bukkit.getUnsafe().modifyItemStack(skull, "{display:{Name:\"Computer Tower\"},SkullOwner:{Id:\"6ce84ae3-53e0-43f1-99df-6f680850a43e\",Properties:{textures:[{Value:\"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2I5MjVkM2E1Mjc1OWZkZThjMDI1ODg3MWZlZmQ5MTQxZTVjOTdmZGY0NTNhZjNkZjIxMTA0Y2M4YzQ4OCJ9fX0=\"}]}}}");
+                armorStand.getEquipment().setHelmet(skull,true);
             });
             for (int i = 0; i < blades.length; i++){
                 Location loc = location.clone();
@@ -247,65 +241,61 @@ public class Drone implements Object, Authentication, Controlled {
                     case 2 -> loc.add(-0.3,0.4,-0.3);
                     case 3 -> loc.add(-0.3,0.4,0.3);
                 }
-                blades[i] = location.getWorld().spawn(loc, ArmorStand.class, new Consumer<ArmorStand>() {
-                    public void accept(ArmorStand armorStand) {
-                        armorStand.setVisible(false);
-                        armorStand.setSmall(true);
-                        armorStand.setMarker(true);
-                        armorStand.setBasePlate(false);
-                        armorStand.setInvisible(true);
-                        armorStand.setGravity(false);
-                        armorStand.setInvulnerable(true);
-                        armorStand.getEquipment().setHelmet(new ItemStack(Material.IRON_TRAPDOOR),true);
-                    }
+                blades[i] = location.getWorld().spawn(loc, ArmorStand.class, armorStand -> {
+                    armorStand.setVisible(false);
+                    armorStand.setSmall(true);
+                    armorStand.setMarker(true);
+                    armorStand.setBasePlate(false);
+                    armorStand.setInvisible(true);
+                    armorStand.setGravity(false);
+                    armorStand.setInvulnerable(true);
+                    armorStand.getEquipment().setHelmet(new ItemStack(Material.IRON_TRAPDOOR),true);
                 });
             }
         }
         public void enable(Inventory inventory){
-            loopID = Bukkit.getScheduler().scheduleSyncRepeatingTask(MCC.This, new Runnable() {
-                public void run() {
-                    Chunk chunk = body.getLocation().getChunk();
-                    if (!chunk.isLoaded()) chunk.load();
+            loopID = Bukkit.getScheduler().scheduleSyncRepeatingTask(MCC.This, () -> {
+                Chunk chunk = body.getLocation().getChunk();
+                if (!chunk.isLoaded()) chunk.load();
 
-                    // pick up items
-                    for (Item item : body.getEyeLocation().getNearbyEntitiesByType(Item.class,1)){
-                        ItemStack itemStack = item.getItemStack();
-                        Map<Integer,ItemStack> map = inventory.addItem(itemStack);
-                        if (map.isEmpty())
-                            item.remove();
-                        else item.setItemStack(map.get(0));
-                    }
-
-                    while (!synchronised.isEmpty()){
-                        synchronised.poll().run();
-                    }
-
-                    // check if hopper beneath
-                    Block block = body.getLocation().getBlock(); // none eye level block is below drone
-                    if (block.getType() == Material.HOPPER){
-                        Hopper hopper = (Hopper) block.getState();
-                        Inventory hopperInventory = hopper.getInventory();
-
-                        // get last ItemStack
-                        ItemStack lastItem = null;
-                        int index = 0;
-                        for (int i = inventory.getSize() - 1; i >= 0; i--){
-                            ItemStack item = inventory.getItem(i);
-                            if (item == null) continue;
-                            lastItem = item;
-                            index = i;
-                            break;
-                        }
-
-                        if (lastItem != null){
-                            Map<Integer,ItemStack> map = hopperInventory.addItem(lastItem);
-                            if (map.isEmpty())
-                                inventory.clear(index);
-                            else inventory.setItem(index,map.get(0));
-                        }
-                    }
-                    animate();
+                // pick up items
+                for (Item item : body.getEyeLocation().getNearbyEntitiesByType(Item.class,1)){
+                    ItemStack itemStack = item.getItemStack();
+                    Map<Integer,ItemStack> map = inventory.addItem(itemStack);
+                    if (map.isEmpty())
+                        item.remove();
+                    else item.setItemStack(map.get(0));
                 }
+
+                while (!synchronised.isEmpty()){
+                    synchronised.poll().run();
+                }
+
+                // check if hopper beneath
+                Block block = body.getLocation().getBlock(); // none eye level block is below drone
+                if (block.getType() == Material.HOPPER){
+                    Hopper hopper = (Hopper) block.getState();
+                    Inventory hopperInventory = hopper.getInventory();
+
+                    // get last ItemStack
+                    ItemStack lastItem = null;
+                    int index = 0;
+                    for (int i = inventory.getSize() - 1; i >= 0; i--){
+                        ItemStack item = inventory.getItem(i);
+                        if (item == null) continue;
+                        lastItem = item;
+                        index = i;
+                        break;
+                    }
+
+                    if (lastItem != null){
+                        Map<Integer,ItemStack> map = hopperInventory.addItem(lastItem);
+                        if (map.isEmpty())
+                            inventory.clear(index);
+                        else inventory.setItem(index,map.get(0));
+                    }
+                }
+                animate();
             },0,0);
         }
         public void disable(){
@@ -337,34 +327,28 @@ public class Drone implements Object, Authentication, Controlled {
         }
         public void setDirection(BlockFace face){
             direction = face;
-            synchronised.add(new Runnable() {
-                public void run() {
-                    Location loc = body.getLocation().setDirection(face.getDirection());
-                    body.teleport(loc);
-                }
+            synchronised.add(() -> {
+                Location loc = body.getLocation().setDirection(face.getDirection());
+                body.teleport(loc);
             });
         }
         public void move(){
             // Synchronise task
-            synchronised.add(new Runnable() {
-                public void run() {
-                    Location b = body.getLocation().add(direction.getDirection());
-                    if (body.getEyeLocation().add(direction.getDirection()).getBlock().getType() != Material.AIR) return;
-                    body.teleport(b);
-                    for (ArmorStand blade : blades){
-                        Location l = blade.getLocation().add(direction.getDirection());
-                        blade.teleport(l);
-                    }
+            synchronised.add(() -> {
+                Location b = body.getLocation().add(direction.getDirection());
+                if (body.getEyeLocation().add(direction.getDirection()).getBlock().getType() != Material.AIR) return;
+                body.teleport(b);
+                for (ArmorStand blade : blades){
+                    Location l = blade.getLocation().add(direction.getDirection());
+                    blade.teleport(l);
                 }
             });
         }
         public void destroy(){
-            synchronised.add(new Runnable() {
-                public void run() {
-                    Block block = body.getEyeLocation().getBlock().getRelative(direction);
-                    if (block.getType().isAir()) return;
-                    block.breakNaturally(new ItemStack(Material.NETHERITE_PICKAXE));
-                }
+            synchronised.add(() -> {
+                Block block = body.getEyeLocation().getBlock().getRelative(direction);
+                if (block.getType().isAir()) return;
+                block.breakNaturally(new ItemStack(Material.NETHERITE_PICKAXE));
             });
         }
         public void kill(){

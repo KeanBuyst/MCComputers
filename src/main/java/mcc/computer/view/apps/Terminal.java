@@ -49,6 +49,7 @@ public class Terminal extends App {
                     File file = new File(MCC.This.getDataFolder(),"computers/"+cid+"/"+s3);
                     if (!file.exists()) {
                         try {
+                            //noinspection ResultOfMethodCallIgnored
                             file.createNewFile();
                             response = "File successfully created";
                         } catch (IOException ignored) {}

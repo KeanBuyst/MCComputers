@@ -7,8 +7,9 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.Metadatable;
 
 import java.io.File;
-import java.util.*;
-import java.util.function.BiConsumer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 public class ObjectHandler {
     private final HashMap<String,Object> objects = new HashMap<>();
@@ -21,6 +22,7 @@ public class ObjectHandler {
     public boolean contains(String id){
         return objects.containsKey(id);
     }
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void removeObject(String id){
         objects.remove(id);
         File file = new File(MCC.This.getDataFolder(), "computers/"+id);
@@ -58,11 +60,7 @@ public class ObjectHandler {
     }
     public String print(){
         StringBuilder builder = new StringBuilder("HANDLER OBJECTS");
-        objects.forEach(new BiConsumer<String, Object>() {
-            public void accept(String s, Object object) {
-                builder.append("\n").append(s);
-            }
-        });
+        objects.forEach((s, object) -> builder.append("\n").append(s));
         return builder.toString();
     }
 }

@@ -4,9 +4,6 @@ import mcc.computer.objects.Object;
 import mcc.computer.objects.controlled.Controlled;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Chest;
-
-import java.util.InvalidPropertiesFormatException;
 
 public class Controller {
 

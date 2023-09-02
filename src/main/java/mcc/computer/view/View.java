@@ -1,7 +1,6 @@
 package mcc.computer.view;
 
 import org.bukkit.map.MapCanvas;
-import org.bukkit.map.MapPalette;
 import org.bukkit.map.MinecraftFont;
 
 import java.awt.*;
